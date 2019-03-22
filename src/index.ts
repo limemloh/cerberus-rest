@@ -3,32 +3,23 @@ import { Request, Response, Express } from "express";
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
-type Validates<A extends Validator<any, any>> = A extends Validator<
-  any,
-  infer R
->
-  ? R
-  : never;
+type Validates<A> = A extends Validator<any, infer R> ? R : any;
 
 type GetValidation = {
   query?: Validator<any, any>;
   body?: Validator<any, any>;
+  params?: Validator<any, any>;
 };
 
-type GetRequset<B extends Record<string, Validator<any, any>>> = Omit<
-  Request,
-  // @ts-ignore
-  keyof B
-> &
-  { [K in keyof B]: Validates<B[K]> };
+type GetRequest<A extends GetValidation> = Omit<Request, keyof GetValidation> &
+  { [k in keyof GetValidation]-?: Validates<A[k]> };
 
 class App {
   constructor(private app: Express) {}
   get<A extends GetValidation>(
     path: string,
     validation: A,
-    // @ts-ignore
-    fn: (req: GetRequset<A>, res: Response) => void
+    fn: (req: GetRequest<A>, res: Response) => void
   ) {
     this.app.get(path, (req: any, res) => {
       for (const key of Object.keys(validation)) {
@@ -42,8 +33,7 @@ class App {
   post<A extends GetValidation>(
     path: string,
     validation: A,
-    // @ts-ignore
-    fn: (req: GetRequset<A>, res: Response) => void
+    fn: (req: GetRequest<A>, res: Response) => void
   ) {
     this.app.get(path, (req: any, res) => {
       for (const key of Object.keys(validation)) {
